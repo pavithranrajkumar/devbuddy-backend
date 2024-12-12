@@ -12,7 +12,6 @@ interface ProjectAttributes {
   budgetMax: number;
   deadline: Date;
   status: 'draft' | 'published' | 'in_progress' | 'completed' | 'cancelled';
-  requiredSkills: number[]; // Array of skill IDs
   applicantsCount: number;
   createdAt?: Date;
   updatedAt?: Date;
@@ -27,10 +26,14 @@ class Project extends Model<ProjectAttributes> implements ProjectAttributes {
   public budgetMax!: number;
   public deadline!: Date;
   public status!: 'draft' | 'published' | 'in_progress' | 'completed' | 'cancelled';
-  public requiredSkills!: number[];
   public applicantsCount!: number;
   public createdAt!: Date;
   public updatedAt!: Date;
+
+  public getSkills!: () => Promise<Skill[]>;
+  public setSkills!: (skills: number[]) => Promise<void>;
+  public addSkill!: (skillId: number) => Promise<void>;
+  public removeSkill!: (skillId: number) => Promise<void>;
 }
 
 Project.init(
@@ -92,13 +95,6 @@ Project.init(
       allowNull: false,
       defaultValue: 'draft',
     },
-    requiredSkills: {
-      type: DataTypes.ARRAY(DataTypes.INTEGER),
-      allowNull: false,
-      validate: {
-        notEmpty: true,
-      },
-    },
     applicantsCount: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
@@ -116,6 +112,8 @@ Project.belongsTo(User, { as: 'client', foreignKey: 'clientId' });
 Project.belongsToMany(Skill, {
   through: 'project_skills',
   as: 'skills',
+  foreignKey: 'projectId',
+  otherKey: 'skillId',
 });
 
 export default Project;

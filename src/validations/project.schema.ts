@@ -6,7 +6,7 @@ const baseProjectSchema = z.object({
   budgetMin: z.number().positive(),
   budgetMax: z.number().positive(),
   deadline: z.string().datetime(),
-  requiredSkills: z.array(z.number()).min(1),
+  skills: z.array(z.number()).min(1),
 });
 
 export const createProjectSchema = baseProjectSchema

@@ -10,7 +10,7 @@ interface CreateProjectDTO {
   budgetMin: number;
   budgetMax: number;
   deadline: Date;
-  requiredSkills: number[];
+  skills: number[];
 }
 
 interface UpdateProjectDTO extends Partial<CreateProjectDTO> {}
@@ -37,12 +37,20 @@ export interface ProjectFilters {
 
 class ProjectService {
   static async createProject(clientId: number, data: CreateProjectDTO): Promise<Project> {
-    return Project.create({
-      ...data,
+    const { skills, ...projectData } = data;
+
+    const project = await Project.create({
+      ...projectData,
       clientId,
       status: 'draft',
       applicantsCount: 0,
     });
+
+    if (skills?.length) {
+      await project.setSkills(skills);
+    }
+
+    return project;
   }
 
   static async updateProject(projectId: number, clientId: number, data: UpdateProjectDTO): Promise<Project> {
@@ -54,15 +62,14 @@ class ProjectService {
       throw new NotFoundError('Project not found');
     }
 
-    // Prevent updates if project has applications and trying to reduce budget
-    if (project.applicantsCount > 0 && data.budgetMin && data.budgetMax) {
-      const budgetReduced = data.budgetMin < project.budgetMin || data.budgetMax < project.budgetMax;
-      if (budgetReduced) {
-        throw new Error('Cannot reduce budget after receiving applications');
-      }
+    const { skills, ...updateData } = data;
+
+    await project.update(updateData);
+
+    if (skills) {
+      await project.setSkills(skills);
     }
 
-    await project.update(data);
     return project;
   }
 
@@ -70,14 +77,14 @@ class ProjectService {
     const project = await Project.findByPk(projectId, {
       include: [
         {
+          model: Skill,
+          as: 'skills',
+          through: { attributes: [] }, // Excludes junction table attributes
+        },
+        {
           model: User,
           as: 'client',
           attributes: ['id', 'name', 'rating'],
-        },
-        {
-          model: Skill,
-          as: 'skills',
-          through: { attributes: [] },
         },
       ],
     });
