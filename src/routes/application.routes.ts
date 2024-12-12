@@ -20,7 +20,14 @@ router.post(
   ApplicationController.apply
 );
 
-router.get('/my', authenticate, isFreelancer, validateRequest({ query: applicationQuerySchema }), ApplicationController.getMyApplications);
+router.get(
+  '/',
+  authenticate,
+  validateRequest({
+    query: applicationQuerySchema,
+  }),
+  ApplicationController.getApplications
+);
 
 router.delete(
   '/:id/withdraw',
@@ -33,17 +40,6 @@ router.delete(
 );
 
 // Client routes
-router.get(
-  '/projects/:projectId',
-  authenticate,
-  isClient,
-  validateRequest({
-    params: z.object({ projectId: z.string() }),
-    query: applicationQuerySchema,
-  }),
-  ApplicationController.getProjectApplications
-);
-
 router.put(
   '/:id/status',
   authenticate,

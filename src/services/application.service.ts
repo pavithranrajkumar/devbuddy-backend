@@ -120,53 +120,18 @@ class ApplicationService {
     );
   }
 
-  static async getApplicationsForProject(
-    projectId: number,
-    clientId: number,
-    filters: { status?: ApplicationStatus[] } = {}
-  ): Promise<ProjectApplication[]> {
-    const project = await Project.findOne({
-      where: { id: projectId, clientId },
-    });
-
-    if (!project) {
-      throw new NotFoundError('Project not found');
-    }
-
-    const where: any = { projectId };
+  static async getApplications(
+    userId: number,
+    userRole: string,
+    filters: { status?: ApplicationStatus[]; projectId?: string } = {},
+    pagination?: { page?: number; limit?: number }
+  ): Promise<PaginatedResponse<ProjectApplication> | ProjectApplication[]> {
+    const where: any = {};
     if (filters.status?.length) {
       where.status = filters.status;
     }
 
-    const { count, rows } = await ProjectApplication.findAndCountAll({
-      where,
-      include: [
-        {
-          model: User,
-          as: 'freelancer',
-          attributes: ['id', 'name', 'rating', 'title'],
-        },
-      ],
-      order: [['createdAt', 'DESC']],
-    });
-
-    return rows;
-  }
-
-  static async getMyApplications(
-    freelancerId: number,
-    filters: { status?: ApplicationStatus[] } = {},
-    pagination: PaginationParams = {}
-  ): Promise<PaginatedResponse<ProjectApplication>> {
-    const { page = 1, limit = 10 } = pagination;
-    const offset = (page - 1) * limit;
-
-    const where: any = { freelancerId };
-    if (filters.status?.length) {
-      where.status = filters.status;
-    }
-
-    const { count, rows } = await ProjectApplication.findAndCountAll({
+    const queryOptions: any = {
       where,
       include: [
         {
@@ -179,21 +144,51 @@ class ApplicationService {
             },
           ],
         },
+        {
+          model: User,
+          as: 'freelancer',
+          attributes: ['id', 'name', 'rating', 'title'],
+        },
       ],
-      offset,
-      limit,
       order: [['createdAt', 'DESC']],
-    });
-
-    return {
-      data: rows,
-      pagination: {
-        total: count,
-        currentPage: page,
-        totalPages: Math.ceil(count / limit),
-        limit,
-      },
     };
+
+    // Add role-specific conditions
+    if (userRole === 'freelancer') {
+      where.freelancerId = userId;
+
+      // Apply pagination only for freelancer requests if pagination params exist
+      if (pagination?.page && pagination?.limit) {
+        const offset = (pagination.page - 1) * pagination.limit;
+        queryOptions.offset = offset;
+        queryOptions.limit = pagination.limit;
+
+        const { count, rows } = await ProjectApplication.findAndCountAll(queryOptions);
+        return {
+          data: rows,
+          pagination: {
+            total: count,
+            currentPage: pagination.page,
+            totalPages: Math.ceil(count / pagination.limit),
+            limit: pagination.limit,
+          },
+        };
+      }
+    } else if (userRole === 'client') {
+      // For clients, get applications from all their projects
+      const clientProjects = await Project.findAll({
+        where: { clientId: userId },
+        attributes: ['id'],
+      });
+
+      where.projectId = {
+        [Op.in]: clientProjects.map((project) => project.id),
+      };
+    }
+
+    // If no pagination or client request, return all results
+    const applications = await ProjectApplication.findAll(queryOptions);
+    return applications;
   }
 
   static async withdrawApplication(applicationId: number, freelancerId: number): Promise<ProjectApplication> {
