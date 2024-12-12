@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { AnyZodObject } from 'zod';
+import { z } from 'zod';
 
 interface ValidateSchema {
-  body?: AnyZodObject;
-  query?: AnyZodObject;
-  params?: AnyZodObject;
+  body?: z.ZodTypeAny;
+  query?: z.ZodTypeAny;
+  params?: z.ZodTypeAny;
 }
 
 export const validateRequest = (schema: ValidateSchema) => {
@@ -21,7 +21,11 @@ export const validateRequest = (schema: ValidateSchema) => {
       }
       next();
     } catch (error) {
-      next(error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ errors: error.errors });
+      } else {
+        next(error);
+      }
     }
   };
 };
