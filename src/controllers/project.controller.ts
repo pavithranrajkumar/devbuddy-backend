@@ -34,6 +34,7 @@ class ProjectController {
     try {
       const { status, budgetMin, budgetMax, skills, search, createdAfter, createdBefore, hasDeadlineBefore, sortBy, sortOrder, page, limit } =
         req.query;
+      const userType = req.user?.userType;
 
       const projects = await ProjectService.getProjects(
         {
@@ -54,7 +55,8 @@ class ProjectController {
             : undefined,
         },
         Number(page),
-        Number(limit)
+        Number(limit),
+        userType
       );
 
       res.json(projects);

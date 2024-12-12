@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 import Project from '../models/project.model';
-import User from '../models/user.model';
+import User, { UserType } from '../models/user.model';
 import Skill from '../models/skill.model';
 import { NotFoundError } from '../utils/errors';
 
@@ -83,7 +83,7 @@ class ProjectService {
         },
         {
           model: User,
-          as: 'client',
+          as: UserType.CLIENT,
           attributes: ['id', 'name', 'rating'],
         },
       ],
@@ -96,7 +96,7 @@ class ProjectService {
     return project;
   }
 
-  static async getProjects(filters: ProjectFilters, page = 1, limit = 10) {
+  static async getProjects(filters: ProjectFilters, page = 1, limit = 10, userType?: UserType) {
     const where = {
       ...(filters.status && { status: filters.status }),
       ...(filters.budgetMin && { budgetMax: { [Op.gte]: filters.budgetMin } }),
@@ -114,7 +114,7 @@ class ProjectService {
         include: [
           {
             model: User,
-            as: 'client',
+            as: UserType.CLIENT,
             attributes: ['id', 'name', 'rating'],
           },
           {

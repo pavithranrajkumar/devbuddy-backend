@@ -1,3 +1,4 @@
+import { UserType } from '@/models/user.model';
 import { z } from 'zod';
 
 export const registerSchema = z.object({
@@ -5,7 +6,7 @@ export const registerSchema = z.object({
     email: z.string().email('Invalid email format'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     name: z.string().min(1, 'Name is required'),
-    userType: z.enum(['client', 'freelancer'], {
+    userType: z.enum([UserType.CLIENT, UserType.FREELANCER], {
       errorMap: () => ({ message: 'User type must be either client or freelancer' }),
     }),
     title: z.string().optional(),

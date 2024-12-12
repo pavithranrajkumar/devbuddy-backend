@@ -1,7 +1,7 @@
 import { NotFoundError, BadRequestError, UnauthorizedError } from '../utils/errors';
 import Project from '../models/project.model';
 import ProjectApplication from '../models/projectApplication.model';
-import User from '../models/user.model';
+import User, { UserType } from '../models/user.model';
 import { Op } from 'sequelize';
 import { PaginationParams, PaginatedResponse } from '../types/pagination.types';
 
@@ -102,7 +102,7 @@ class ApplicationService {
       },
     };
 
-    return transitions[currentStatus][isClient ? 'client' : 'freelancer'];
+    return transitions[currentStatus][isClient ? UserType.CLIENT : UserType.FREELANCER];
   }
 
   private static async handleAcceptance(application: ProjectApplication): Promise<void> {
@@ -143,14 +143,14 @@ class ApplicationService {
           include: [
             {
               model: User,
-              as: 'client',
+              as: UserType.CLIENT,
               attributes: ['id', 'name', 'rating'],
             },
           ],
         },
         {
           model: User,
-          as: 'freelancer',
+          as: UserType.FREELANCER,
           attributes: ['id', 'name', 'rating', 'title'],
         },
       ],
@@ -158,7 +158,7 @@ class ApplicationService {
     };
 
     // Add role-specific conditions
-    if (userRole === 'freelancer') {
+    if (userRole === UserType.FREELANCER) {
       where.freelancerId = userId;
 
       // Apply pagination only for freelancer requests if pagination params exist
@@ -178,7 +178,7 @@ class ApplicationService {
           },
         };
       }
-    } else if (userRole === 'client') {
+    } else if (userRole === UserType.CLIENT) {
       // For clients, get applications from all their projects
       const clientProjects = await Project.findAll({
         where: { clientId: userId },

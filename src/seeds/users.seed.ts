@@ -1,4 +1,4 @@
-import User from '../models/user.model';
+import User, { UserType } from '../models/user.model';
 import UserSkill from '../models/userSkill.model';
 import bcrypt from 'bcrypt';
 
@@ -66,7 +66,7 @@ export const seedUsers = async () => {
         where: { id: user.id },
         defaults: {
           ...user,
-          userType: user.userType as 'freelancer' | 'client' | 'admin',
+          userType: user.userType as UserType,
         },
       });
     }

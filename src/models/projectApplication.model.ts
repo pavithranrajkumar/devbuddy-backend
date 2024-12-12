@@ -1,6 +1,6 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/database.config';
-import User from './user.model';
+import User, { UserType } from './user.model';
 import Project from './project.model';
 
 interface ProjectApplicationAttributes {
@@ -166,6 +166,6 @@ ProjectApplication.init(
 
 // Associations
 ProjectApplication.belongsTo(Project, { foreignKey: 'projectId' });
-ProjectApplication.belongsTo(User, { as: 'freelancer', foreignKey: 'freelancerId' });
+ProjectApplication.belongsTo(User, { as: UserType.FREELANCER, foreignKey: 'freelancerId' });
 
 export default ProjectApplication;

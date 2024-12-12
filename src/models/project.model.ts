@@ -1,6 +1,6 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/database.config';
-import User from './user.model';
+import User, { UserType } from './user.model';
 import Skill from './skill.model';
 
 interface ProjectAttributes {
@@ -108,7 +108,7 @@ Project.init(
 );
 
 // Associations
-Project.belongsTo(User, { as: 'client', foreignKey: 'clientId' });
+Project.belongsTo(User, { as: UserType.CLIENT, foreignKey: 'clientId' });
 Project.belongsToMany(Skill, {
   through: 'project_skills',
   as: 'skills',

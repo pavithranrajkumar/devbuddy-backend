@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import User from '../models/user.model';
+import User, { UserType } from '../models/user.model';
 import { RegisterInput, LoginInput } from '../validations/auth/schemas';
 
 class AuthService {
@@ -18,6 +18,7 @@ class AuthService {
     const user = await User.create({
       ...data,
       password: hashedPassword,
+      userType: data.userType as UserType,
     });
 
     const token = this.generateToken(user.id);

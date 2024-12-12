@@ -2,11 +2,17 @@ import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/database.config';
 import Skill from './skill.model';
 
+export enum UserType {
+  CLIENT = 'client',
+  FREELANCER = 'freelancer',
+  ADMIN = 'admin',
+}
+
 interface UserAttributes {
   id?: number;
   email: string;
   password: string;
-  userType: 'client' | 'freelancer' | 'admin';
+  userType: UserType;
   name: string;
   title?: string;
   bio?: string;
@@ -24,7 +30,7 @@ class User extends Model<UserAttributes> implements UserAttributes {
   public id!: number;
   public email!: string;
   public password!: string;
-  public userType!: 'client' | 'freelancer' | 'admin';
+  public userType!: UserType;
   public name!: string;
   public title!: string;
   public bio!: string;
@@ -61,7 +67,7 @@ User.init(
       allowNull: false,
     },
     userType: {
-      type: DataTypes.ENUM('client', 'freelancer', 'admin'),
+      type: DataTypes.ENUM(...Object.values(UserType)),
       allowNull: false,
     },
     name: {
