@@ -26,7 +26,7 @@ class ApplicationController {
 
   static async getApplications(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { status, page, limit } = req.query;
+      const { status, page, limit, projectId } = req.query;
 
       // Only pass pagination params if they exist
       const paginationParams = page && limit ? { page: Number(page), limit: Number(limit) } : undefined;
@@ -36,6 +36,7 @@ class ApplicationController {
         req.user!.userType,
         {
           status: status as ApplicationStatus[],
+          projectId: projectId ? parseInt(projectId as string) : undefined,
         },
         paginationParams
       );

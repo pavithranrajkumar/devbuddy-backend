@@ -107,30 +107,33 @@ class ProjectService {
       }),
     };
 
-    const { count, rows } = await Project.findAndCountAll({
-      where,
-      include: [
-        {
-          model: User,
-          as: 'client',
-          attributes: ['id', 'name', 'rating'],
-        },
-        {
-          model: Skill,
-          as: 'skills',
-          through: { attributes: [] },
-        },
-      ],
-      offset: (page - 1) * limit,
-      limit,
-      order: [['createdAt', 'DESC']],
-    });
+    const [total, projects] = await Promise.all([
+      Project.count({ where }),
+      Project.findAll({
+        where,
+        include: [
+          {
+            model: User,
+            as: 'client',
+            attributes: ['id', 'name', 'rating'],
+          },
+          {
+            model: Skill,
+            as: 'skills',
+            through: { attributes: [] },
+          },
+        ],
+        offset: (page - 1) * limit,
+        limit,
+        order: [['createdAt', 'DESC']],
+      }),
+    ]);
 
     return {
-      projects: rows,
-      total: count,
+      projects,
+      total,
       page,
-      totalPages: Math.ceil(count / limit),
+      totalPages: Math.ceil(total / limit),
     };
   }
 

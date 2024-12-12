@@ -123,12 +123,16 @@ class ApplicationService {
   static async getApplications(
     userId: number,
     userRole: string,
-    filters: { status?: ApplicationStatus[]; projectId?: string } = {},
+    filters: { status?: ApplicationStatus[]; projectId?: number } = {},
     pagination?: { page?: number; limit?: number }
   ): Promise<PaginatedResponse<ProjectApplication> | ProjectApplication[]> {
     const where: any = {};
     if (filters.status?.length) {
       where.status = filters.status;
+    }
+
+    if (filters.projectId) {
+      where.projectId = filters.projectId;
     }
 
     const queryOptions: any = {
