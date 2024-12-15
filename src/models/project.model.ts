@@ -1,7 +1,7 @@
-import { Model, DataTypes } from 'sequelize';
-import sequelize from '../config/database.config';
-import User from './user.model';
-import Skill from './skill.model';
+import { Model, DataTypes } from "sequelize";
+import sequelize from "../config/database.config";
+import User from "./user.model";
+import Skill from "./skill.model";
 
 interface ProjectAttributes {
   id?: number;
@@ -11,8 +11,7 @@ interface ProjectAttributes {
   budgetMin: number;
   budgetMax: number;
   deadline: Date;
-  status: 'draft' | 'published' | 'in_progress' | 'completed' | 'cancelled';
-  requiredSkills: number[]; // Array of skill IDs
+  status: "published" | "in_progress" | "completed" | "cancelled";
   applicantsCount: number;
   createdAt?: Date;
   updatedAt?: Date;
@@ -26,13 +25,11 @@ class Project extends Model<ProjectAttributes> implements ProjectAttributes {
   public budgetMin!: number;
   public budgetMax!: number;
   public deadline!: Date;
-  public status!: 'draft' | 'published' | 'in_progress' | 'completed' | 'cancelled';
-  public requiredSkills!: number[];
+  public status!: "published" | "in_progress" | "completed" | "cancelled";
   public applicantsCount!: number;
   public createdAt!: Date;
   public updatedAt!: Date;
 }
-
 Project.init(
   {
     id: {
@@ -59,7 +56,7 @@ Project.init(
       allowNull: false,
       references: {
         model: User,
-        key: 'id',
+        key: "id",
       },
     },
     budgetMin: {
@@ -82,22 +79,20 @@ Project.init(
       validate: {
         isAfterNow(value: Date) {
           if (value <= new Date()) {
-            throw new Error('Deadline must be in the future');
+            throw new Error("Deadline must be in the future");
           }
         },
       },
     },
     status: {
-      type: DataTypes.ENUM('draft', 'published', 'in_progress', 'completed', 'cancelled'),
+      type: DataTypes.ENUM(
+        "published",
+        "in_progress",
+        "completed",
+        "cancelled"
+      ),
       allowNull: false,
-      defaultValue: 'draft',
-    },
-    requiredSkills: {
-      type: DataTypes.ARRAY(DataTypes.INTEGER),
-      allowNull: false,
-      validate: {
-        notEmpty: true,
-      },
+      defaultValue: "published",
     },
     applicantsCount: {
       type: DataTypes.INTEGER,
@@ -106,16 +101,18 @@ Project.init(
   },
   {
     sequelize,
-    tableName: 'projects',
+    tableName: "projects",
     timestamps: true,
   }
 );
 
 // Associations
-Project.belongsTo(User, { as: 'client', foreignKey: 'clientId' });
+Project.belongsTo(User, { as: "client", foreignKey: "clientId" });
 Project.belongsToMany(Skill, {
-  through: 'project_skills',
-  as: 'skills',
+  through: "project_skills",
+  as: "skills",
+  foreignKey: "projectId",
+  otherKey: "skillId",
 });
 
 export default Project;

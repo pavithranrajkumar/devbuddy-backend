@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 const baseProjectSchema = z.object({
   title: z.string().min(5).max(100),
@@ -11,28 +11,34 @@ const baseProjectSchema = z.object({
 
 export const createProjectSchema = baseProjectSchema
   .refine((data) => data.budgetMin <= data.budgetMax, {
-    message: 'Minimum budget cannot be greater than maximum budget',
-    path: ['budgetMin'],
+    message: "Minimum budget cannot be greater than maximum budget",
+    path: ["budgetMin"],
   })
   .refine((data) => new Date(data.deadline) > new Date(), {
-    message: 'Deadline must be in the future',
-    path: ['deadline'],
+    message: "Deadline must be in the future",
+    path: ["deadline"],
   });
 
 export const updateProjectSchema = baseProjectSchema
   .partial()
-  .refine((data) => !data.budgetMin || !data.budgetMax || data.budgetMin <= data.budgetMax, {
-    message: 'Minimum budget cannot be greater than maximum budget',
-    path: ['budgetMin'],
-  })
+  .refine(
+    (data) =>
+      !data.budgetMin || !data.budgetMax || data.budgetMin <= data.budgetMax,
+    {
+      message: "Minimum budget cannot be greater than maximum budget",
+      path: ["budgetMin"],
+    }
+  )
   .refine((data) => !data.deadline || new Date(data.deadline) > new Date(), {
-    message: 'Deadline must be in the future',
-    path: ['deadline'],
+    message: "Deadline must be in the future",
+    path: ["deadline"],
   });
 
 export const projectQuerySchema = z
   .object({
-    status: z.enum(['draft', 'published', 'in_progress', 'completed', 'cancelled']).optional(),
+    status: z
+      .enum(["published", "in_progress", "completed", "cancelled"])
+      .optional(),
     budgetMin: z
       .string()
       .transform((val) => parseInt(val))
@@ -43,7 +49,7 @@ export const projectQuerySchema = z
       .optional(),
     skills: z
       .string()
-      .transform((val) => val.split(',').map(Number))
+      .transform((val) => val.split(",").map(Number))
       .optional(),
     search: z.string().optional(),
     createdAfter: z.string().datetime().optional(),
@@ -53,17 +59,19 @@ export const projectQuerySchema = z
       .string()
       .transform((val) => parseInt(val))
       .optional(),
-    sortBy: z.enum(['createdAt', 'budgetMin', 'deadline', 'applicantsCount']).optional(),
-    sortOrder: z.enum(['asc', 'desc']).default('desc'),
+    sortBy: z
+      .enum(["createdAt", "budgetMin", "deadline", "applicantsCount"])
+      .optional(),
+    sortOrder: z.enum(["asc", "desc"]).default("desc"),
     page: z
       .string()
       .transform((val) => parseInt(val))
-      .default('1'),
+      .default("1"),
     limit: z
       .string()
       .transform((val) => parseInt(val))
-      .default('10'),
+      .default("10"),
   })
   .refine((data) => data.limit <= 100, {
-    message: 'Maximum limit is 100 items per page',
+    message: "Maximum limit is 100 items per page",
   });
