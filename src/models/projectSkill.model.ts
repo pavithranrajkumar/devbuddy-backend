@@ -4,7 +4,7 @@ import Project from './project.model';
 import Skill from './skill.model';
 
 interface ProjectSkillAttributes {
-  id: number;
+  id?: number;
   projectId: number;
   skillId: number;
 }
@@ -43,6 +43,7 @@ ProjectSkill.init(
     sequelize,
     tableName: 'project_skills',
     timestamps: true,
+    paranoid: true,
   }
 );
 

@@ -1,11 +1,13 @@
-import { Model, DataTypes } from 'sequelize';
-import sequelize from '../config/database.config';
-import Skill from './skill.model';
+import { Model, DataTypes } from "sequelize";
+import sequelize from "../config/database.config";
+import Skill from "./skill.model";
+import UserSkill from "./userSkill.model";
+import ProjectApplication from "./projectApplication.model";
 
 export enum UserType {
-  CLIENT = 'client',
-  FREELANCER = 'freelancer',
-  ADMIN = 'admin',
+  CLIENT = "client",
+  FREELANCER = "freelancer",
+  ADMIN = "admin",
 }
 
 interface UserAttributes {
@@ -17,8 +19,8 @@ interface UserAttributes {
   title?: string;
   bio?: string;
   hourlyRate?: number;
-  linkedinUrl?: string;
-  githubUrl?: string;
+  linkedinUrl?: string | null;
+  githubUrl?: string | null;
   experienceInMonths?: number;
   activeProjectsCount?: number;
   completedProjectsCount?: number;
@@ -35,8 +37,8 @@ class User extends Model<UserAttributes> implements UserAttributes {
   public title!: string;
   public bio!: string;
   public hourlyRate!: number;
-  public linkedinUrl!: string;
-  public githubUrl!: string;
+  public linkedinUrl!: string | null;
+  public githubUrl!: string | null;
   public experienceInMonths!: number;
   public activeProjectsCount!: number;
   public completedProjectsCount!: number;
@@ -45,6 +47,7 @@ class User extends Model<UserAttributes> implements UserAttributes {
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
   public skills!: Skill[];
+  declare ProjectApplications?: ProjectApplication[];
 }
 
 User.init(
@@ -127,8 +130,9 @@ User.init(
   },
   {
     sequelize,
-    tableName: 'users',
+    tableName: "users",
     timestamps: true,
+    paranoid: true,
   }
 );
 

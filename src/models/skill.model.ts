@@ -1,5 +1,6 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/database.config';
+import UserSkill from './userSkill.model';
 
 interface SkillAttributes {
   id: number;
@@ -16,6 +17,8 @@ class Skill extends Model<SkillAttributes, SkillCreationAttributes> implements S
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
+
+  declare UserSkill?: UserSkill;
 }
 
 Skill.init(
@@ -39,6 +42,7 @@ Skill.init(
     sequelize,
     tableName: 'skills',
     timestamps: true,
+    paranoid: true,
   }
 );
 

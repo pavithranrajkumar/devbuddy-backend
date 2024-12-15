@@ -1,8 +1,9 @@
 import { Op } from 'sequelize';
-import Project from '../models/project.model';
+import Project, { ProjectStatus } from '../models/project.model';
 import User, { UserType } from '../models/user.model';
 import Skill from '../models/skill.model';
 import { NotFoundError } from '../utils/errors';
+import UserSkill from '@/models/userSkill.model';
 
 interface CreateProjectDTO {
   title: string;
@@ -42,7 +43,7 @@ class ProjectService {
     const project = await Project.create({
       ...projectData,
       clientId,
-      status: 'draft',
+      status: ProjectStatus.PUBLISHED,
       applicantsCount: 0,
     });
 
@@ -96,65 +97,64 @@ class ProjectService {
     return project;
   }
 
-  static async getProjects(filters: ProjectFilters, page = 1, limit = 10, userType?: UserType) {
+  static async getProjects(filters: ProjectFilters, userType?: UserType, clientId?: number) {
     const where = {
       ...(filters.status && { status: filters.status }),
       ...(filters.budgetMin && { budgetMax: { [Op.gte]: filters.budgetMin } }),
       ...(filters.budgetMax && { budgetMin: { [Op.lte]: filters.budgetMax } }),
-      ...(filters.skills?.length && { requiredSkills: { [Op.overlap]: filters.skills } }),
       ...(filters.search && {
         [Op.or]: [{ title: { [Op.iLike]: `%${filters.search}%` } }, { description: { [Op.iLike]: `%${filters.search}%` } }],
       }),
+      ...(userType === UserType.CLIENT && clientId !== undefined && { clientId }),
     };
 
-    const [total, projects] = await Promise.all([
-      Project.count({ where }),
-      Project.findAll({
-        where,
-        include: [
-          {
-            model: User,
-            as: UserType.CLIENT,
-            attributes: ['id', 'name', 'rating'],
-          },
-          {
-            model: Skill,
-            as: 'skills',
-            through: { attributes: [] },
-          },
-        ],
-        offset: (page - 1) * limit,
-        limit,
-        order: [['createdAt', 'DESC']],
-      }),
-    ]);
+    const projects = await Project.findAll({
+      where,
+      include: [
+        {
+          model: User,
+          as: UserType.CLIENT,
+          attributes: ['id', 'name', 'rating'],
+        },
+        {
+          model: Skill,
+          as: 'skills',
+          through: { attributes: [] },
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
 
     return {
       projects,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
+      total: projects.length,
     };
   }
 
-  static async getMatchingProjects(freelancerId: number, page = 1, limit = 10) {
+  static async getMatchingProjects(freelancerId: number, filters: ProjectFilters) {
     const freelancer = await User.findByPk(freelancerId, {
-      include: [{ model: Skill, as: 'skills' }],
+      include: [
+        {
+          model: Skill,
+          as: 'skills',
+          through: { attributes: [] },
+        },
+      ],
     });
 
     if (!freelancer) {
       throw new NotFoundError('Freelancer not found');
     }
 
-    const freelancerSkillIds = freelancer.skills.map((skill) => skill.id);
+    const freelancerSkillIds = freelancer.skills?.map((skill) => skill.id) || [99999999999];
 
     return this.getProjects(
       {
-        status: 'published',
+        status: ProjectStatus.PUBLISHED,
+        ...filters,
         skills: freelancerSkillIds,
       },
-      page,
-      limit
+      UserType.FREELANCER
     );
   }
 }

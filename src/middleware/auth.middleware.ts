@@ -14,14 +14,16 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       throw new UnauthorizedError('No token provided');
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      userId: number;
+    };
     const user = await User.findByPk(decoded.userId);
 
     if (!user) {
       throw new UnauthorizedError('User not found');
     }
 
-    req.user = user;
+    req.user = user; // Ensure this is set correctly
     next();
   } catch (error) {
     next(new UnauthorizedError('Invalid token'));

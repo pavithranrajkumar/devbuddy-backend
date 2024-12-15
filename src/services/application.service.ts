@@ -1,9 +1,9 @@
 import { NotFoundError, BadRequestError, UnauthorizedError } from '../utils/errors';
-import Project from '../models/project.model';
-import ProjectApplication from '../models/projectApplication.model';
+import Project, { ProjectStatus } from '../models/project.model';
+import ProjectApplication, { ProjectApplicationStatus } from '../models/projectApplication.model';
 import User, { UserType } from '../models/user.model';
 import { Op } from 'sequelize';
-import { PaginationParams, PaginatedResponse } from '../types/pagination.types';
+import { PaginatedResponse } from '../types/pagination.types';
 
 interface CreateApplicationDTO {
   coverLetter: string;
@@ -11,14 +11,12 @@ interface CreateApplicationDTO {
   estimatedDuration: number;
 }
 
-export type ApplicationStatus = 'applied' | 'marked_for_interview' | 'accepted' | 'rejected' | 'withdrawn';
-
 class ApplicationService {
   static async applyToProject(freelancerId: number, projectId: number, data: CreateApplicationDTO): Promise<ProjectApplication> {
     const project = await Project.findOne({
       where: {
         id: projectId,
-        status: 'published',
+        status: ProjectStatus.PUBLISHED,
       },
     });
 
@@ -42,7 +40,7 @@ class ApplicationService {
       ...data,
       projectId,
       freelancerId,
-      status: 'applied',
+      status: ProjectApplicationStatus.APPLIED,
     });
 
     await project.increment('applicantsCount');
@@ -50,9 +48,14 @@ class ApplicationService {
     return application;
   }
 
-  static async updateApplicationStatus(applicationId: number, newStatus: ApplicationStatus, userId: number): Promise<ProjectApplication> {
+  static async updateApplicationStatus(
+    applicationId: number,
+    newStatus: ProjectApplicationStatus,
+    userId: number,
+    rejectionReason?: string
+  ): Promise<ProjectApplication> {
     const application = await ProjectApplication.findByPk(applicationId, {
-      include: [{ model: Project }],
+      include: [{ model: Project, as: 'Project' }],
     });
 
     if (!application) {
@@ -64,29 +67,32 @@ class ApplicationService {
       throw new BadRequestError(`Cannot transition from ${application.status} to ${newStatus}`);
     }
 
-    if (newStatus === 'accepted') {
+    if (newStatus === ProjectApplicationStatus.ACCEPTED) {
       await this.handleAcceptance(application);
     }
 
-    await application.update({ status: newStatus });
+    await application.update({
+      status: newStatus as ProjectApplicationStatus,
+      ...(rejectionReason && { rejectionReason }),
+    });
     return application;
   }
 
-  private static getAllowedTransitions(currentStatus: ApplicationStatus, isClient: boolean): ApplicationStatus[] {
+  private static getAllowedTransitions(currentStatus: ProjectApplicationStatus, isClient: boolean): ProjectApplicationStatus[] {
     const transitions: Record<
-      ApplicationStatus,
+      ProjectApplicationStatus,
       {
-        client: ApplicationStatus[];
-        freelancer: ApplicationStatus[];
+        client: ProjectApplicationStatus[];
+        freelancer: ProjectApplicationStatus[];
       }
     > = {
       applied: {
-        client: ['marked_for_interview', 'accepted', 'rejected'],
-        freelancer: ['withdrawn'],
+        client: [ProjectApplicationStatus.MARKED_FOR_INTERVIEW, ProjectApplicationStatus.ACCEPTED, ProjectApplicationStatus.REJECTED],
+        freelancer: [ProjectApplicationStatus.WITHDRAWN],
       },
       marked_for_interview: {
-        client: ['accepted', 'rejected'],
-        freelancer: ['withdrawn'],
+        client: [ProjectApplicationStatus.ACCEPTED, ProjectApplicationStatus.REJECTED],
+        freelancer: [ProjectApplicationStatus.WITHDRAWN],
       },
       accepted: {
         client: [],
@@ -100,21 +106,25 @@ class ApplicationService {
         client: [],
         freelancer: [],
       },
+      completed: {
+        client: [],
+        freelancer: [],
+      },
     };
 
     return transitions[currentStatus][isClient ? UserType.CLIENT : UserType.FREELANCER];
   }
 
   private static async handleAcceptance(application: ProjectApplication): Promise<void> {
-    await Project.update({ status: 'in_progress' }, { where: { id: application.projectId } });
+    await Project.update({ status: ProjectStatus.IN_PROGRESS }, { where: { id: application.projectId } });
 
     await ProjectApplication.update(
-      { status: 'rejected' },
+      { status: ProjectApplicationStatus.REJECTED },
       {
         where: {
           projectId: application.projectId,
           id: { [Op.ne]: application.id },
-          status: { [Op.notIn]: ['withdrawn', 'rejected'] },
+          status: { [Op.notIn]: [ProjectApplicationStatus.WITHDRAWN, ProjectApplicationStatus.REJECTED] },
         },
       }
     );
@@ -123,7 +133,7 @@ class ApplicationService {
   static async getApplications(
     userId: number,
     userRole: string,
-    filters: { status?: ApplicationStatus[]; projectId?: number } = {},
+    filters: { status?: ProjectApplicationStatus[]; projectId?: number } = {},
     pagination?: { page?: number; limit?: number }
   ): Promise<PaginatedResponse<ProjectApplication> | ProjectApplication[]> {
     const where: any = {};
@@ -140,6 +150,7 @@ class ApplicationService {
       include: [
         {
           model: Project,
+          as: 'Project',
           include: [
             {
               model: User,
@@ -178,16 +189,6 @@ class ApplicationService {
           },
         };
       }
-    } else if (userRole === UserType.CLIENT) {
-      // For clients, get applications from all their projects
-      const clientProjects = await Project.findAll({
-        where: { clientId: userId },
-        attributes: ['id'],
-      });
-
-      where.projectId = {
-        [Op.in]: clientProjects.map((project) => project.id),
-      };
     }
 
     // If no pagination or client request, return all results
@@ -204,11 +205,11 @@ class ApplicationService {
       throw new NotFoundError('Application not found');
     }
 
-    if (!this.getAllowedTransitions(application.status, false).includes('withdrawn')) {
+    if (!this.getAllowedTransitions(application.status, false).includes(ProjectApplicationStatus.WITHDRAWN)) {
       throw new BadRequestError('Cannot withdraw application in current status');
     }
 
-    await application.update({ status: 'withdrawn' });
+    await application.update({ status: ProjectApplicationStatus.WITHDRAWN });
     return application;
   }
 }

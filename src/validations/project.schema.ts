@@ -32,7 +32,7 @@ export const updateProjectSchema = baseProjectSchema
 
 export const projectQuerySchema = z
   .object({
-    status: z.enum(['draft', 'published', 'in_progress', 'completed', 'cancelled']).optional(),
+    status: z.enum(['published', 'in_progress', 'completed', 'cancelled']).optional(),
     budgetMin: z
       .string()
       .transform((val) => parseInt(val))

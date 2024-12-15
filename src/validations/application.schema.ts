@@ -6,9 +6,23 @@ export const createApplicationSchema = z.object({
   estimatedDuration: z.number().positive('Estimated duration must be positive'),
 });
 
-export const updateApplicationStatusSchema = z.object({
-  status: z.enum(['marked_for_interview', 'accepted', 'rejected', 'withdrawn']),
-});
+export const updateApplicationStatusSchema = z
+  .object({
+    status: z.enum(['marked_for_interview', 'accepted', 'rejected', 'withdrawn']),
+    rejectionReason: z.string().min(10).max(500).optional(),
+  })
+  .refine(
+    (data) => {
+      // Require rejectionReason when status is 'rejected'
+      if (data.status === 'rejected') {
+        return !!data.rejectionReason;
+      }
+      return true;
+    },
+    {
+      message: "Rejection reason is required when status is 'rejected'",
+    }
+  );
 
 export const paginationSchema = z
   .object({

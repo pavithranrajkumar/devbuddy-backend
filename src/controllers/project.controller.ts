@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
 import ProjectService, { ProjectSortField, SortOrder } from '../services/project.service';
+import { UserType } from '../models/user.model';
 
 class ProjectController {
   static async create(req: AuthRequest, res: Response, next: NextFunction) {
@@ -32,14 +33,26 @@ class ProjectController {
 
   static async getAll(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { status, budgetMin, budgetMax, skills, search, createdAfter, createdBefore, hasDeadlineBefore, sortBy, sortOrder, page, limit } =
-        req.query;
-      const userType = req.user?.userType;
+      // Log the entire request query for debugging
+      console.log('Request Query Parameters:', req.query);
+
+      const { status, budgetMin, budgetMax, skills, search, createdAfter, createdBefore, hasDeadlineBefore } = req.query;
+
+      // Log the received filters for debugging
+      console.log('Received filters:', {
+        status,
+        budgetMin,
+        budgetMax,
+        skills,
+        search,
+        createdAfter,
+        createdBefore,
+        hasDeadlineBefore,
+      });
 
       const projects = await ProjectService.getProjects(
         {
-          clientId: req.user?.id,
-          status: status as string,
+          status: status ? (status as string) : undefined,
           budgetMin: budgetMin ? Number(budgetMin) : undefined,
           budgetMax: budgetMax ? Number(budgetMax) : undefined,
           skills: skills ? String(skills).split(',').map(Number) : undefined,
@@ -47,16 +60,10 @@ class ProjectController {
           createdAfter: createdAfter ? new Date(String(createdAfter)) : undefined,
           createdBefore: createdBefore ? new Date(String(createdBefore)) : undefined,
           hasDeadlineBefore: hasDeadlineBefore ? new Date(String(hasDeadlineBefore)) : undefined,
-          sort: sortBy
-            ? {
-                field: sortBy as ProjectSortField,
-                order: (sortOrder as SortOrder) || 'desc',
-              }
-            : undefined,
+          clientId: req.user?.id,
         },
-        Number(page),
-        Number(limit),
-        userType
+        req.user?.userType,
+        req.user?.id
       );
 
       res.json(projects);
@@ -67,8 +74,17 @@ class ProjectController {
 
   static async getMatching(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { page = 1, limit = 10 } = req.query;
-      const projects = await ProjectService.getMatchingProjects(req.user!.id, parseInt(page as string), parseInt(limit as string));
+      const { status, budgetMin, budgetMax, search, createdAfter, createdBefore, hasDeadlineBefore } = req.query;
+      console.log(req.query);
+      const projects = await ProjectService.getMatchingProjects(req.user!.id, {
+        status: status ? (status as string) : undefined,
+        budgetMin: budgetMin ? Number(budgetMin) : undefined,
+        budgetMax: budgetMax ? Number(budgetMax) : undefined,
+        search: search as string,
+        createdAfter: createdAfter ? new Date(String(createdAfter)) : undefined,
+        createdBefore: createdBefore ? new Date(String(createdBefore)) : undefined,
+        hasDeadlineBefore: hasDeadlineBefore ? new Date(String(hasDeadlineBefore)) : undefined,
+      });
       res.json(projects);
     } catch (error) {
       next(error);

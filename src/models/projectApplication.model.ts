@@ -1,7 +1,16 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/database.config';
-import User, { UserType } from './user.model';
 import Project from './project.model';
+import User from './user.model';
+
+export enum ProjectApplicationStatus {
+  APPLIED = 'applied',
+  MARKED_FOR_INTERVIEW = 'marked_for_interview',
+  ACCEPTED = 'accepted',
+  REJECTED = 'rejected',
+  WITHDRAWN = 'withdrawn',
+  COMPLETED = 'completed',
+}
 
 interface ProjectApplicationAttributes {
   id?: number;
@@ -10,7 +19,7 @@ interface ProjectApplicationAttributes {
   coverLetter: string;
   proposedRate: number;
   estimatedDuration: number;
-  status: 'applied' | 'marked_for_interview' | 'accepted' | 'rejected' | 'withdrawn';
+  status: ProjectApplicationStatus;
   clientNotes?: string;
   rejectionReason?: string;
   withdrawalReason?: string;
@@ -31,7 +40,7 @@ class ProjectApplication extends Model<ProjectApplicationAttributes> implements 
   public coverLetter!: string;
   public proposedRate!: number;
   public estimatedDuration!: number;
-  public status!: 'applied' | 'marked_for_interview' | 'accepted' | 'rejected' | 'withdrawn';
+  public status!: ProjectApplicationStatus;
   public clientNotes?: string;
   public rejectionReason?: string;
   public withdrawalReason?: string;
@@ -161,11 +170,8 @@ ProjectApplication.init(
         name: 'unique_project_freelancer',
       },
     ],
+    paranoid: true,
   }
 );
-
-// Associations
-ProjectApplication.belongsTo(Project, { foreignKey: 'projectId' });
-ProjectApplication.belongsTo(User, { as: UserType.FREELANCER, foreignKey: 'freelancerId' });
 
 export default ProjectApplication;

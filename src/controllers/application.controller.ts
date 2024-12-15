@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
-import ApplicationService, { ApplicationStatus } from '../services/application.service';
+import ApplicationService from '../services/application.service';
+import { ProjectApplicationStatus } from '@/models/projectApplication.model';
 
 class ApplicationController {
   static async apply(req: AuthRequest, res: Response, next: NextFunction) {
@@ -27,7 +28,6 @@ class ApplicationController {
   static async getApplications(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { status, page, limit, projectId } = req.query;
-
       // Only pass pagination params if they exist
       const paginationParams = page && limit ? { page: Number(page), limit: Number(limit) } : undefined;
 
@@ -35,7 +35,7 @@ class ApplicationController {
         req.user!.id,
         req.user!.userType,
         {
-          status: status as ApplicationStatus[],
+          status: status as ProjectApplicationStatus[],
           projectId: projectId ? parseInt(projectId as string) : undefined,
         },
         paginationParams
